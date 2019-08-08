@@ -1179,12 +1179,10 @@ void Staff::UpdateMowing()
     Invalidate();
     while (true)
     {
-        CoordsXY loc;
-        int16_t xy_distance;
-        if (UpdateAction(loc, xy_distance))
+        if (auto loc = UpdateAction())
         {
-            int16_t checkZ = tile_element_height(loc.x, loc.y);
-            MoveTo(loc.x, loc.y, checkZ);
+            int16_t checkZ = tile_element_height((*loc).x, (*loc).y);
+            MoveTo((*loc).x, (*loc).y, checkZ);
             Invalidate();
             return;
         }
@@ -1379,12 +1377,10 @@ void Staff::UpdateSweeping()
         staff_litter_swept++;
         window_invalidate_flags |= PEEP_INVALIDATE_STAFF_STATS;
     }
-    CoordsXY loc;
-    int16_t xy_distance;
-    if (UpdateAction(loc, xy_distance))
+    if (auto loc = UpdateAction())
     {
-        int16_t actionZ = GetZOnSlope(loc.x, loc.y);
-        MoveTo(loc.x, loc.y, actionZ);
+        int16_t actionZ = GetZOnSlope((*loc).x, (*loc).y);
+        MoveTo((*loc).x, (*loc).y, actionZ);
         Invalidate();
         return;
     }
@@ -1495,24 +1491,22 @@ void Staff::UpdateHeadingToInspect()
     Invalidate();
 
     int16_t delta_y = abs(y - destination_y);
-    CoordsXY loc;
-    int16_t xy_distance;
-    if (!UpdateAction(loc, xy_distance))
+    if (auto loc = UpdateAction())
     {
-        SetState(PEEP_STATE_INSPECTING);
-        sub_state = 0;
+        int32_t newZ = ride->stations[current_ride_station].Height * 8;
+
+        if (delta_y < 20)
+        {
+            newZ += RideData5[ride->type].z;
+        }
+
+        MoveTo((*loc).x, (*loc).y, newZ);
+        Invalidate();
         return;
     }
 
-    int32_t newZ = ride->stations[current_ride_station].Height * 8;
-
-    if (delta_y < 20)
-    {
-        newZ += RideData5[ride->type].z;
-    }
-
-    MoveTo(loc.x, loc.y, newZ);
-    Invalidate();
+    SetState(PEEP_STATE_INSPECTING);
+    sub_state = 0;
 }
 
 /**
@@ -1612,24 +1606,22 @@ void Staff::UpdateAnswering()
     Invalidate();
 
     int16_t delta_y = abs(y - destination_y);
-    CoordsXY loc;
-    int16_t xy_distance;
-    if (!UpdateAction(loc, xy_distance))
+    if (auto loc = UpdateAction())
     {
-        SetState(PEEP_STATE_FIXING);
-        sub_state = 0;
+        int32_t newZ = ride->stations[current_ride_station].Height * 8;
+
+        if (delta_y < 20)
+        {
+            newZ += RideData5[ride->type].z;
+        }
+
+        MoveTo((*loc).x, (*loc).y, newZ);
+        Invalidate();
         return;
     }
 
-    int32_t newZ = ride->stations[current_ride_station].Height * 8;
-
-    if (delta_y < 20)
-    {
-        newZ += RideData5[ride->type].z;
-    }
-
-    MoveTo(loc.x, loc.y, newZ);
-    Invalidate();
+    SetState(PEEP_STATE_FIXING);
+    sub_state = 0;
 }
 
 /** rct2: 0x00992A5C */
@@ -2230,11 +2222,9 @@ bool Staff::UpdateFixingMoveToBrokenDownVehicle(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    CoordsXY loc;
-    int16_t tmp_xy_distance;
-    if (UpdateAction(loc, tmp_xy_distance))
+    if (auto loc = UpdateAction())
     {
-        sprite_move(loc.x, loc.y, z, (rct_sprite*)this);
+        sprite_move((*loc).x, (*loc).y, z, (rct_sprite*)this);
         Invalidate();
         return false;
     }
@@ -2389,17 +2379,15 @@ bool Staff::UpdateFixingMoveToStationEnd(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    CoordsXY loc;
-    int16_t tmp_distance;
-    if (!UpdateAction(loc, tmp_distance))
+    if (auto loc = UpdateAction())
     {
-        return true;
+        sprite_move((*loc).x, (*loc).y, z, (rct_sprite*)this);
+        Invalidate();
+
+        return false;
     }
 
-    sprite_move(loc.x, loc.y, z, (rct_sprite*)this);
-    Invalidate();
-
-    return false;
+    return true;
 }
 
 /**
@@ -2506,17 +2494,15 @@ bool Staff::UpdateFixingMoveToStationStart(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    CoordsXY loc;
-    int16_t tmp_xy_distance;
-    if (!UpdateAction(loc, tmp_xy_distance))
+    if (auto loc = UpdateAction())
     {
-        return true;
+        sprite_move((*loc).x, (*loc).y, z, (rct_sprite*)this);
+        Invalidate();
+
+        return false;
     }
 
-    sprite_move(loc.x, loc.y, z, (rct_sprite*)this);
-    Invalidate();
-
-    return false;
+    return true;
 }
 
 /**
@@ -2630,19 +2616,16 @@ bool Staff::UpdateFixingMoveToStationExit(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    CoordsXY loc;
-    int16_t tmp_xy_distance;
-    if (!UpdateAction(loc, tmp_xy_distance))
+    if (auto loc = UpdateAction())
     {
-        return true;
+        sprite_move((*loc).x, (*loc).y, z, (rct_sprite*)this);
+        Invalidate();
+        return false;
     }
     else
     {
-        sprite_move(loc.x, loc.y, z, (rct_sprite*)this);
-        Invalidate();
+        return true;
     }
-
-    return false;
 }
 
 /**
@@ -2726,24 +2709,22 @@ bool Staff::UpdateFixingLeaveByEntranceExit(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    CoordsXY loc;
     int16_t xy_distance;
-    if (!UpdateAction(loc, xy_distance))
+    if (auto loc = UpdateAction(xy_distance))
     {
-        SetState(PEEP_STATE_FALLING);
+        uint16_t stationHeight = ride->stations[current_ride_station].Height * 8;
+
+        if (xy_distance >= 16)
+        {
+            stationHeight += RideData5[ride->type].z;
+        }
+
+        sprite_move((*loc).x, (*loc).y, stationHeight, (rct_sprite*)this);
+        Invalidate();
+
         return false;
     }
-
-    uint16_t stationHeight = ride->stations[current_ride_station].Height * 8;
-
-    if (xy_distance >= 16)
-    {
-        stationHeight += RideData5[ride->type].z;
-    }
-
-    sprite_move(loc.x, loc.y, stationHeight, (rct_sprite*)this);
-    Invalidate();
-
+    SetState(PEEP_STATE_FALLING);
     return false;
 }
 
