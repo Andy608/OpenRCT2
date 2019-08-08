@@ -1179,13 +1179,12 @@ void Staff::UpdateMowing()
     Invalidate();
     while (true)
     {
-        int16_t actionX = 0;
-        int16_t actionY = 0;
+        CoordsXY loc;
         int16_t xy_distance;
-        if (UpdateAction(&actionX, &actionY, &xy_distance))
+        if (UpdateAction(loc, xy_distance))
         {
-            int16_t checkZ = tile_element_height(actionX, actionY);
-            MoveTo(actionX, actionY, checkZ);
+            int16_t checkZ = tile_element_height(loc.x, loc.y);
+            MoveTo(loc.x, loc.y, checkZ);
             Invalidate();
             return;
         }
@@ -1250,8 +1249,7 @@ void Staff::UpdateWatering()
     {
         if (action != PEEP_ACTION_NONE_2)
         {
-            int16_t actionX, actionY, xy_distance;
-            UpdateAction(&actionX, &actionY, &xy_distance);
+            UpdateAction();
             return;
         }
 
@@ -1317,10 +1315,7 @@ void Staff::UpdateEmptyingBin()
             return;
         }
 
-        int16_t actionX = 0;
-        int16_t actionY = 0;
-        int16_t xy_distance;
-        UpdateAction(&actionX, &actionY, &xy_distance);
+        UpdateAction();
 
         if (action_frame != 11)
             return;
@@ -1384,13 +1379,12 @@ void Staff::UpdateSweeping()
         staff_litter_swept++;
         window_invalidate_flags |= PEEP_INVALIDATE_STAFF_STATS;
     }
-    int16_t actionX = 0;
-    int16_t actionY = 0;
+    CoordsXY loc;
     int16_t xy_distance;
-    if (UpdateAction(&actionX, &actionY, &xy_distance))
+    if (UpdateAction(loc, xy_distance))
     {
-        int16_t actionZ = GetZOnSlope(actionX, actionY);
-        MoveTo(actionX, actionY, actionZ);
+        int16_t actionZ = GetZOnSlope(loc.x, loc.y);
+        MoveTo(loc.x, loc.y, actionZ);
         Invalidate();
         return;
     }
@@ -1501,9 +1495,9 @@ void Staff::UpdateHeadingToInspect()
     Invalidate();
 
     int16_t delta_y = abs(y - destination_y);
-
-    int16_t actionX, actionY, xy_distance;
-    if (!UpdateAction(&actionX, &actionY, &xy_distance))
+    CoordsXY loc;
+    int16_t xy_distance;
+    if (!UpdateAction(loc, xy_distance))
     {
         SetState(PEEP_STATE_INSPECTING);
         sub_state = 0;
@@ -1517,7 +1511,7 @@ void Staff::UpdateHeadingToInspect()
         newZ += RideData5[ride->type].z;
     }
 
-    MoveTo(actionX, actionY, newZ);
+    MoveTo(loc.x, loc.y, newZ);
     Invalidate();
 }
 
@@ -1558,8 +1552,7 @@ void Staff::UpdateAnswering()
             peep_reset_pathfind_goal(this);
             return;
         }
-        int16_t actionX, actionY, xy_distance;
-        UpdateAction(&actionX, &actionY, &xy_distance);
+        UpdateAction();
         return;
     }
     else if (sub_state <= 3)
@@ -1619,9 +1612,9 @@ void Staff::UpdateAnswering()
     Invalidate();
 
     int16_t delta_y = abs(y - destination_y);
-
-    int16_t actionX, actionY, xy_distance;
-    if (!UpdateAction(&actionX, &actionY, &xy_distance))
+    CoordsXY loc;
+    int16_t xy_distance;
+    if (!UpdateAction(loc, xy_distance))
     {
         SetState(PEEP_STATE_FIXING);
         sub_state = 0;
@@ -1635,7 +1628,7 @@ void Staff::UpdateAnswering()
         newZ += RideData5[ride->type].z;
     }
 
-    MoveTo(actionX, actionY, newZ);
+    MoveTo(loc.x, loc.y, newZ);
     Invalidate();
 }
 
@@ -2237,10 +2230,11 @@ bool Staff::UpdateFixingMoveToBrokenDownVehicle(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    int16_t actionX, actionY, tmp_xy_distance;
-    if (UpdateAction(&actionX, &actionY, &tmp_xy_distance))
+    CoordsXY loc;
+    int16_t tmp_xy_distance;
+    if (UpdateAction(loc, tmp_xy_distance))
     {
-        sprite_move(actionX, actionY, z, (rct_sprite*)this);
+        sprite_move(loc.x, loc.y, z, (rct_sprite*)this);
         Invalidate();
         return false;
     }
@@ -2395,13 +2389,14 @@ bool Staff::UpdateFixingMoveToStationEnd(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    int16_t actionX, actionY, tmp_distance;
-    if (!UpdateAction(&actionX, &actionY, &tmp_distance))
+    CoordsXY loc;
+    int16_t tmp_distance;
+    if (!UpdateAction(loc, tmp_distance))
     {
         return true;
     }
 
-    sprite_move(actionX, actionY, z, (rct_sprite*)this);
+    sprite_move(loc.x, loc.y, z, (rct_sprite*)this);
     Invalidate();
 
     return false;
@@ -2511,13 +2506,14 @@ bool Staff::UpdateFixingMoveToStationStart(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    int16_t actionX, actionY, tmp_xy_distance;
-    if (!UpdateAction(&actionX, &actionY, &tmp_xy_distance))
+    CoordsXY loc;
+    int16_t tmp_xy_distance;
+    if (!UpdateAction(loc, tmp_xy_distance))
     {
         return true;
     }
 
-    sprite_move(actionX, actionY, z, (rct_sprite*)this);
+    sprite_move(loc.x, loc.y, z, (rct_sprite*)this);
     Invalidate();
 
     return false;
@@ -2634,14 +2630,15 @@ bool Staff::UpdateFixingMoveToStationExit(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    int16_t actionX, actionY, tmp_xy_distance;
-    if (!UpdateAction(&actionX, &actionY, &tmp_xy_distance))
+    CoordsXY loc;
+    int16_t tmp_xy_distance;
+    if (!UpdateAction(loc, tmp_xy_distance))
     {
         return true;
     }
     else
     {
-        sprite_move(actionX, actionY, z, (rct_sprite*)this);
+        sprite_move(loc.x, loc.y, z, (rct_sprite*)this);
         Invalidate();
     }
 
@@ -2729,8 +2726,9 @@ bool Staff::UpdateFixingLeaveByEntranceExit(bool firstRun, Ride* ride)
     }
 
     Invalidate();
-    int16_t actionX, actionY, xy_distance;
-    if (!UpdateAction(&actionX, &actionY, &xy_distance))
+    CoordsXY loc;
+    int16_t xy_distance;
+    if (!UpdateAction(loc, xy_distance))
     {
         SetState(PEEP_STATE_FALLING);
         return false;
@@ -2743,7 +2741,7 @@ bool Staff::UpdateFixingLeaveByEntranceExit(bool firstRun, Ride* ride)
         stationHeight += RideData5[ride->type].z;
     }
 
-    sprite_move(actionX, actionY, stationHeight, (rct_sprite*)this);
+    sprite_move(loc.x, loc.y, stationHeight, (rct_sprite*)this);
     Invalidate();
 
     return false;
